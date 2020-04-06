@@ -3,7 +3,7 @@ from flask import Blueprint, jsonify, Flask, url_for, render_template, request, 
 from jinja2 import Environment, FileSystemLoader
 from Application import TweetSearch
 
-App = Blueprint('main', __name__)
+App = Blueprint('main', __name__, url_prefix="/test")
 
 env = Environment(loader = FileSystemLoader('templates'))
 

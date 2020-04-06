@@ -37,7 +37,7 @@ deactivate () {
 # unset irrelavent variables
 deactivate nondestructive
 
-VIRTUAL_ENV="/home/cabox/workspace/Mouthful_App/venv"
+VIRTUAL_ENV="/home/cabox/workspace/Complete_App/venv"
 export VIRTUAL_ENV
 
 _OLD_VIRTUAL_PATH="$PATH"
