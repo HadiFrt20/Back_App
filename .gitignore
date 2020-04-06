@@ -1,0 +1,6 @@
+#Configfiles
+_Config.py
+
+#outputfiles
+*.json
+*.txt
