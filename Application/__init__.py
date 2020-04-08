@@ -1,6 +1,10 @@
 from flask import Flask 
 from celery import Celery
 from Application import _Config
+from flask_sqlalchemy import SQLAlchemy
+
+
+db = SQLAlchemy()
 
 def make_celery(app):
   celery = Celery(app.import_name, backend=_Config.backend, broker=_Config.broker)
@@ -18,7 +22,6 @@ def make_celery(app):
 
 def create_app():
   Mouthful = Flask(__name__,instance_relative_config=True)
-
 
   from .views import App
   Mouthful.register_blueprint(App)

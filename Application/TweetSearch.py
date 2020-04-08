@@ -37,14 +37,14 @@ def tweet_search(api):
                                               max_id=str(max_t - 1),
                                               since_id=sinceId, until=day_before)
               if not new_tweets:
-                  print("No more tweets found")
+                  #print("No more tweets found")
                   break
               for tweet in new_tweets:
                   t=Tweet.Tweet(tweet)
-                  print(tweet._json)
-                  print()
+                  #print(tweet._json)
+                  print(t.__dict__)
               tweetCount += len(new_tweets)
-              print("Downloaded {0} tweets".format(tweetCount))
+              #print("Downloaded {0} tweets".format(tweetCount))
               global max_t 
               max_t = new_tweets[-1].id
           except TweepError as e:

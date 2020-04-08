@@ -3,4 +3,8 @@ _Config.py
 
 #outputfiles
 *.json
-*.txt
+tweets.txt
+flask_app_notes.txt
+
+#virtualenv
+venv/

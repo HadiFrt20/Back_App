@@ -114,5 +114,6 @@ class Tweet:
       self.statuscnt = self.get_statuses(status)
       self.seniority = self.get_seniority(status)
       self.lang = self.get_lang(status)
-     
+#       u = api.get_user(user_id/screenname)
+#       print u.screen_name
     
