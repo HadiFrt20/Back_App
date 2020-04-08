@@ -45,7 +45,6 @@ def tweet_search(api):
                   print(t.__dict__)
               tweetCount += len(new_tweets)
               #print("Downloaded {0} tweets".format(tweetCount))
-              global max_t 
               max_t = new_tweets[-1].id
           except TweepError as e:
               # Just exit if any error

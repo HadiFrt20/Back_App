@@ -13,7 +13,7 @@ class Tweet:
     if coords is not None:
       lon = coords["coordinates"][0]
       lat = coords["coordinates"][1]
-    return lon,lat;
+    return lon,lat
 
   def get_text(self,status):
     text = ""
@@ -21,7 +21,7 @@ class Tweet:
       text = status.full_text
     else:
       text = status.text
-    exp_filter = "(http|ftp|https)://([\w_-]+(?:(?:\.[\w_-]+)+))([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?|([@#][\w_-]+)"
+    exp_filter = r"(http|ftp|https)://([\w_-]+(?:(?:\.[\w_-]+)+))([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?|([@#][\w_-]+)"
     clean_text = re.sub(exp_filter, "", text)
     return clean_text
 
