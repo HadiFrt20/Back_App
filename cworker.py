@@ -1,6 +1,4 @@
-from Application import create_app,make_celery
-from celery import Celery
-
+from Application import create_app, make_celery
 
 Mouthful = create_app()
 celery = make_celery(Mouthful)
