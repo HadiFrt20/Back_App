@@ -42,6 +42,8 @@ class Tweet(db.Model):
     retweets = db.Column(db.Integer)
     favorites = db.Column(db.Integer)
     keyword = db.Column(db.Text)
+    polarity = db.Column(db.Float)
+    subjectivity = db.Column(db.Float)
     emojis = db.relationship(
         'Emoji', secondary=tweet_emoji,
         backref=db.backref('tweets', lazy='dynamic'))
