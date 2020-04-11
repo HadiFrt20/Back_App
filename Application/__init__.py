@@ -32,7 +32,8 @@ def make_celery(app):
 
 def create_app():
     Mouthful = Flask(__name__, instance_relative_config=True)
-
+    Mouthful.config.from_object(_Config.dbconf)
+    db.init_app(Mouthful)
     from .views import App
     Mouthful.register_blueprint(App)
     return Mouthful

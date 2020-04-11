@@ -4,6 +4,8 @@ from celery import shared_task
 from Application import _Config
 from celery.utils.log import get_task_logger
 from datetime import date, timedelta
+import random
+import json
 
 logger = get_task_logger(__name__)
 
@@ -15,6 +17,25 @@ maxTweets = 1000  # Some arbitrary large number
 tweetsPerQry = 100  # this is the max the API permits
 fName = 'tweets.txt'  # We'll store the tweets in a text file.
 sinceId = None
+
+
+def gen_tquery():
+    q = " "
+    filters = " AND -filter:replies AND -filter:retweets"
+    with open(_Config.scglossary) as json_file:
+        glossary = json.load(json_file)
+        cats = list(glossary.keys())
+        cat = random.choice(cats)
+        terms = glossary[cat]
+        nb = random.randrange(len(terms))
+        if nb <= 0:
+            nb = 1
+        chosen_terms = random.sample(terms, nb)
+        q = " OR ".join(chosen_terms)
+    if q == " ":
+        return None
+    else:
+        return q+filters, cat
 
 
 def tweet_search(api):
