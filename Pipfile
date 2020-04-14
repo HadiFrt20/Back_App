@@ -52,6 +52,7 @@ crontab = "*"
 python-crontab = "*"
 utils = "*"
 celery = {extras = ["redis"],version = "*"}
+dictor = "*"
 
 [requires]
 python_version = "3.7"

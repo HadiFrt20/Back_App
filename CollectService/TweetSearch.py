@@ -2,87 +2,107 @@ from tweepy import OAuthHandler, API, TweepError
 from Application import Tweet
 from Application import _Config
 from datetime import date, timedelta
-import random
+from time import sleep
+from random import choice
 import json
 
 day_before = date.today() - timedelta(days=1)
-max_t = -1
-# this is what we're searching for
-searchQuery = "logistics AND -filter:replies AND -filter:retweets"
-maxTweets = 1000  # Some arbitrary large number
-tweetsPerQry = 100  # this is the max the API permits
-fName = 'tweets.txt'  # We'll store the tweets in a text file.
+keywords = {}
+maxTweets = 100
+tweetsPerQry = 10
 sinceId = None
+maxId = -1
+Alltweets = []
 
 
-def gen_tquery():
-    q = " "
+def ConfigQuery(idx):
+    global keywords, maxTweets, tweetsPerQry, sinceId, maxId
+    if(idx == 0):
+        with open("CollectService/QuerySettings.json", "r") as json_file:
+            data = json.load(json_file)
+            keywords = data["keywords"]
+            maxTweets = data["maxTweets"]
+            tweetsPerQry = data["tweetsPerQry"]
+    k = choice(list(keywords.keys()))
+    sinceId = keywords[k]["sinceId"]
+    maxId = keywords[k]["maxId"]
     filters = " AND -filter:replies AND -filter:retweets"
-    with open(_Config.scglossary) as json_file:
-        glossary = json.load(json_file)
-        cats = list(glossary.keys())
-        cat = random.choice(cats)
-        terms = glossary[cat]
-        nb = random.randrange(len(terms))
-        if nb <= 0:
-            nb = 1
-        chosen_terms = random.sample(terms, nb)
-        q = " OR ".join(chosen_terms)
-    if q == " ":
-        return None
-    else:
-        return q+filters, cat
+    query = k + filters
+    return query, k
 
 
-def tweet_search(api):
+def updatekeywords(key):
+    keywords[key]["sinceId"] = sinceId
+    keywords[key]["maxId"] = maxId
+
+
+def updatequerysettings():
+    with open("CollectService/QuerySettings.json", "r+") as json_file:
+        data = json.load(json_file)
+        # Insert new data
+        data["keywords"] = keywords
+        json_file.seek(0)
+        json.dump(data, json_file)
+        json_file.truncate()
+
+
+def tweet_search(api, searchQuery):
     tweetCount = 0
-    global max_t
+    tweets = []
+    global maxId, sinceId
     print("Downloading max {0} tweets, starting from {1}".format(
-        maxTweets, max_t))
+        maxTweets, maxId))
     while tweetCount < maxTweets:
         try:
-            if max_t <= 0:
+            if maxId <= 0:
                 if not sinceId:
                     new_tweets = api.search(
-                        q=searchQuery, count=tweetsPerQry,
+                        q=searchQuery, count=tweetsPerQry, lang='en',
                         tweet_mode='extended', until=day_before)
                 else:
                     new_tweets = api.search(q=searchQuery, count=tweetsPerQry,
-                                            tweet_mode='extended',
+                                            tweet_mode='extended', lang='en',
                                             since_id=sinceId, until=day_before)
             else:
                 if (not sinceId):
                     new_tweets = api.search(q=searchQuery, count=tweetsPerQry,
-                                            tweet_mode='extended',
-                                            max_id=str(max_t - 1),
+                                            tweet_mode='extended', lang='en',
+                                            max_id=str(maxId - 1),
                                             until=day_before)
                 else:
                     new_tweets = api.search(q=searchQuery, count=tweetsPerQry,
-                                            tweet_mode='extended',
-                                            max_id=str(max_t - 1),
-                                            since_id=sinceId, until=day_before)
+                                            tweet_mode='extended', lang='en',
+                                            max_id=str(maxId - 1),
+                                            until=day_before)
             if not new_tweets:
-                # print("No more tweets found")
+                print("No more tweets found")
                 break
             for tweet in new_tweets:
                 t = Tweet.Tweet(tweet)
-                # print(tweet._json)
-                print(t.__dict__)
+                tweets.append(t.__dict__)
             tweetCount += len(new_tweets)
-            # print("Downloaded {0} tweets".format(tweetCount))
-            max_t = new_tweets[-1].id
+            maxId = new_tweets[-1].id
+            sinceId = new_tweets[0].id
         except TweepError as e:
             # Just exit if any error
             print("some error : " + str(e))
             break
-
+        sleep(5)
     print("Downloaded {0} tweets.".format(tweetCount))
+    return tweets
 
 
-def SearchTweets(squery, maxt):
+def SearchTweets():
+    global Alltweets
     auth = OAuthHandler(_Config.consumer_key, _Config.consumer_secret)
     auth.set_access_token(_Config.access_token, _Config.access_secret)
     api = API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
-    tweets, max_t = tweet_search(api, squery, maxt)
-    print("Generated query is {0}".format(squery))
-    return tweets, max_t
+    for i in range(2):
+        squery, k = ConfigQuery(i)
+        print("Nb {0} Generated query is {1}".format(i, squery))
+        tweets = tweet_search(api, squery)
+        Alltweets.append(tweets)
+        updatekeywords(k)
+        sleep(10)
+    updatequerysettings()
+    return Alltweets
