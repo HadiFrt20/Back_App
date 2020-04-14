@@ -1,13 +1,9 @@
 from tweepy import OAuthHandler, API, TweepError
 from Application import Tweet
-from celery import shared_task
 from Application import _Config
-from celery.utils.log import get_task_logger
 from datetime import date, timedelta
 import random
 import json
-
-logger = get_task_logger(__name__)
 
 day_before = date.today() - timedelta(days=1)
 max_t = -1
@@ -83,11 +79,10 @@ def tweet_search(api):
     print("Downloaded {0} tweets.".format(tweetCount))
 
 
-# @periodic_task(run_every=crontab(minute=0, hour='16'))
-@shared_task
-def SearchTweets():
+def SearchTweets(squery, maxt):
     auth = OAuthHandler(_Config.consumer_key, _Config.consumer_secret)
     auth.set_access_token(_Config.access_token, _Config.access_secret)
     api = API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
-    logger.info("I log!")
-    tweet_search(api)
+    tweets, max_t = tweet_search(api, squery, maxt)
+    print("Generated query is {0}".format(squery))
+    return tweets, max_t

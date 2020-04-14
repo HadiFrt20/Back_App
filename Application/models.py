@@ -1,9 +1,9 @@
 """This script defines the models and tables needed to store tweets"""
-
-from Application import db
+from flask_sqlalchemy import SQLAlchemy
 import datetime
 from sqlalchemy import DateTime
 
+db = SQLAlchemy()
 tweet_emoji = db.Table('tweet_emoji',
                        db.Column('tweet_id', db.Integer,
                                  db.ForeignKey('tweets.id')),

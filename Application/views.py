@@ -1,7 +1,6 @@
-from __future__ import absolute_import
 from flask import Blueprint, url_for, request
 from jinja2 import Environment, FileSystemLoader
-from Application import TweetSearch
+from CollectService import tasks
 
 App = Blueprint('main', __name__, url_prefix="/test")
 
@@ -17,5 +16,5 @@ def newproject():
         return home_temp.render(css_home=css_home)
     if request.form['start'] == '>>':
         print('here')
-        TweetSearch.SearchTweets.delay()
+        tasks.gettweets()
         return home_temp.render(css_home=css_home)

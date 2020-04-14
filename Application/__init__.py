@@ -1,39 +1,12 @@
-from flask import Flask 
-from celery import Celery
-from Application import _Config
-from flask_sqlalchemy import SQLAlchemy
+from flask import Flask
+from . import _Config
+from CollectService.tasks import celery
+from .views import App
+from .models import db
 
 
-db = SQLAlchemy()
-
-
-def make_celery(app):
-    celery = Celery(app.import_name, backend=_Config.backend,
-                    broker=_Config.broker)
-    celery.conf.update(task_serializer=_Config.task_serializer,
-                       accept_content=_Config.accept_content,
-                       result_serializer=_Config.result_serializer,
-                       timezone=_Config.timezone,
-                       beat_schedule=_Config.CELERYBEAT_SCHEDULE,
-                       enable_utc=_Config.enable_utc)
-
-    TaskBase = celery.Task
-
-    class ContextTask(TaskBase):
-        abstract = True
-
-        def __call__(self, *args, **kwargs):
-            with app.app_context():
-                return TaskBase.__call__(self, *args, **kwargs)
-    celery.Task = ContextTask
-
-    return celery
-
-
-def create_app():
-    Mouthful = Flask(__name__, instance_relative_config=True)
-    Mouthful.config.from_object(_Config.dbconf)
-    db.init_app(Mouthful)
-    from .views import App
-    Mouthful.register_blueprint(App)
-    return Mouthful
+Mouthful = Flask(__name__, instance_relative_config=True)
+Mouthful.celery = celery
+Mouthful.config.from_object(_Config.dbconf)
+db.init_app(Mouthful)
+Mouthful.register_blueprint(App)

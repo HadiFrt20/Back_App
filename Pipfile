@@ -12,7 +12,6 @@ flake8 = "*"
 alembic = "==1.4.2"
 amqp = "==2.5.2"
 billiard = "==3.6.3.0"
-celery = {extras = ["redis"],version = "*"}
 certifi = "==2020.4.5"
 chardet = "==3.0.4"
 click = "==7.1.1"
@@ -51,6 +50,8 @@ pymysql = "*"
 pylint-flask = "*"
 crontab = "*"
 python-crontab = "*"
+utils = "*"
+celery = {extras = ["redis"],version = "*"}
 
 [requires]
 python_version = "3.7"
