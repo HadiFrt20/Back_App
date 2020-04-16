@@ -93,11 +93,17 @@ def tweet_search(api, searchQuery):
     return tweets
 
 
-def SearchTweets():
-    global Alltweets
+def TweepyAuth():
+    api = None
     auth = OAuthHandler(_Config.consumer_key, _Config.consumer_secret)
     auth.set_access_token(_Config.access_token, _Config.access_secret)
     api = API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
+    return api
+
+
+def SearchTweets():
+    global Alltweets
+    api = TweepyAuth()
     for i in range(2):
         squery, k = ConfigQuery(i)
         print("Nb {0} Generated query is {1}".format(i, squery))
@@ -107,3 +113,13 @@ def SearchTweets():
         sleep(5)
     updatequerysettings()
     return Alltweets
+
+
+def GetUserfromId(userId):
+    api = TweepyAuth()
+    try:
+        user = api.get_user(userId)
+    except TweepError as e:
+        print(e)
+        user = None
+    return user

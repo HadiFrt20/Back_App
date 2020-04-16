@@ -37,7 +37,6 @@ class Tweet:
         if status._json['place'] is not None:
             country = status._json['place']['country']
         else:
-            print("place : ", status._json['place'])
             country = None
         return country
 
@@ -46,6 +45,9 @@ class Tweet:
 
     def get_user_id(self, status):
         return status._json['user']['id']
+
+    def get_user_location(self, status):
+        return status._json['user']['location']
 
     def get_lang(self, status):
         return str(status._json['lang'])
@@ -102,6 +104,7 @@ class Tweet:
             self.user = self.get_user(status)
             self.user_id = self.get_user_id(status)
             self.verified = self.is_verified(status)
+            self.user_location = self.get_user_location(status)
             self.lon = self.get_coordinates(status)[0]
             self.lat = self.get_coordinates(status)[1]
             self.text = self.get_text(status)
@@ -123,6 +126,7 @@ class Tweet:
                 self.country = status["country"]
                 self.user = status["user"]
                 self.user_id = status["user_id"]
+                self.user_location = status["user_location"]
                 self.verified = bool(status["verified"])
                 self.lon = status["lon"]
                 self.lat = status["lat"]

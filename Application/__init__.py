@@ -7,7 +7,6 @@ from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
 
-
 # def create_app():
 Mouthful = Flask(__name__, instance_relative_config=True)
 from CollectService.tasks import celery

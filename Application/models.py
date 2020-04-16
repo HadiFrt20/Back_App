@@ -4,9 +4,7 @@ from CollectService import helpers
 from Application import db, Mouthful
 from sqlalchemy.ext.declarative import declarative_base
 import datetime
-from sqlalchemy import DateTime, exc
-from sqlalchemy.orm import backref
-from random import randint
+from sqlalchemy import DateTime, exc, orm
 
 Base = declarative_base()
 # db = SQLAlchemy()
@@ -18,14 +16,26 @@ tweet_hashtag = db.Table('tweet_hashtag',
                                    db.ForeignKey('hashtags.id')))
 
 
+mention = db.Table('mention',
+                   db.Column('user_fk', db.BigInteger,
+                             db.ForeignKey('users.id')),
+                   db.Column('mentioned_fk', db.BigInteger,
+                             db.ForeignKey('users.id')))
+
+
 class User(db.Model):
     __tablename__ = 'users'
     id = db.Column(db.BigInteger, primary_key=True)
     screen_name = db.Column(db.String(50))
+    location = db.Column(db.String(150))
     verified = db.Column(db.Boolean)
     score = db.Column(db.Float)
     seniority = db.Column(DateTime, default=datetime.datetime.utcnow)
     tweets = db.relationship("Tweet", backref='user', lazy='dynamic')
+    mentions = db.relationship("User", secondary=mention,
+                               primaryjoin=id == mention.c.user_fk,
+                               secondaryjoin=id == mention.c.mentioned_fk,
+                               backref="left mentions")
 
     @classmethod
     def doesexist(cls, id):
@@ -60,30 +70,35 @@ class Tweet(db.Model):
 
     @classmethod
     def doesexist(cls, id):
-        with Mouthful.app_context():
-            exists = db.session.query(Tweet.id).\
-                filter(Tweet.id == id).scalar() is not None
-            if exists:
-                print('Tweet already exists')
+        exists = db.session.query(Tweet.id).\
+            filter(Tweet.id == id).scalar() is not None
+        if exists:
+            print('Tweet already exists')
         return exists
 
 
 class Hashtag(db.Model):
     __tablename__ = 'hashtags'
     id = db.Column(db.Integer, primary_key=True)
-    tag = db.Column(db.Text)
+    tag = db.Column(db.Text, nullable=False)
+    # TODO fix hashtags duplicates
+    @classmethod
+    def doesexist(cls, txt):
+        tag = None
+        exists = False
+        try:
+            exists = db.session.query(Hashtag).\
+                     filter(Hashtag.tag == txt).one() is not None
+        except orm.exc.MultipleResultsFound:
+            exists = True
+        except orm.exc.NoResultFound:
+            exists = False
 
-
-class Mention(db.Model):
-    __tablename__ = 'mentions'
-    mention_id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(
-        db.BigInteger, db.ForeignKey('users.id'))
-    mentioned_id = db.Column(
-        db.BigInteger, db.ForeignKey('users.id'))
-    mentioned = db.relationship(
-        'User', foreign_keys=[user_id],
-        backref=db.backref('mentions', lazy='dynamic'))
+        if exists:
+            print('Hashtag already exists')
+            tag = db.session.query(Hashtag).\
+                filter(Hashtag.tag == txt).first()
+        return tag
 
 
 def InsertMultipleEntries(tweets):
@@ -97,8 +112,6 @@ def InsertMultipleEntries(tweets):
 
 def InsertdbEntry(tweet):
     succeeded = True
-    this_hashtags = []
-    this_mentions = []
     credscore = helpers.calcScore(tweet)
     this_Tweet = Tweet(id=tweet.tweet_id, text=tweet.text,
                        language=tweet.lang, longitude=tweet.lon,
@@ -107,46 +120,59 @@ def InsertdbEntry(tweet):
                        keyword="test", polarity=1.22, subjectivity=0.33)
     this_User = User(id=tweet.user_id, screen_name=tweet.user,
                      verified=tweet.verified, score=credscore,
-                     seniority=tweet.seniority)
-    tweet_exists = this_Tweet.doesexist(tweet.tweet_id)
-    if not tweet_exists:
-        if tweet.hashtags is not None:
-            for t in list(tweet.hashtags):
-                idx = 0
-                tag = Hashtag()
-                tag.tag = list(tweet.hashtags)[idx]
-                this_hashtags.append(tag)
-                idx = idx + 1
-            this_Tweet.hashtags.extend(this_hashtags)
-
-        if tweet.mentions is not None:
+                     location=tweet.user_location, seniority=tweet.seniority)
+    with Mouthful.app_context():
+        tweet_exists = this_Tweet.doesexist(tweet.tweet_id)
+        if not tweet_exists:
+            this_hashtags = []
+            tweets_hashtags = []
+            if len(list(tweet.hashtags)) > 0:
+                for t in list(tweet.hashtags):
+                    tag = Hashtag()
+                    exists = tag.doesexist(t['text'])
+                    if exists is None:
+                        new_tag = Hashtag(tag=t['text'])
+                        this_hashtags.append(new_tag)
+                        tweets_hashtags.append(new_tag)
+                    else:
+                        old_tag = exists
+                        tweets_hashtags.append(old_tag)
             mnts_lst = list(tweet.mentions)
-            print('mentions list size is : ', len(mnts_lst))
-            for mnts in mnts_lst:
-                idx = 0
-                mention = Mention()
-                mention.user_screen_name = tweet.user
-                mention.mentioned_screen_name = randint(19271979, 829189383223)
-                # mnts_lst[idx]
-                this_mentions.append(mention)
-                idx = idx + 1
-        with Mouthful.app_context():
             try:
                 db.session.add(this_Tweet)
-                if this_hashtags is not None:
-                    db.session.bulk_save_objects(this_hashtags)
+                if len(this_hashtags) > 0:
+                    for hashtag in this_hashtags:
+                        db.session.merge(hashtag)
+                if(len(tweets_hashtags) > 0):
+                    this_Tweet.hashtags.extend(tweets_hashtags)
                 user_exists = this_User.doesexist(tweet.user_id)
                 if user_exists is None:
-                    print("User doesn't exist", user_exists, this_User)
+                    print("User doesn't exist")
                     this_User.tweets.append(this_Tweet)
-                    db.session.add(this_User)
                 else:
                     print("User already exists")
                     this_User = user_exists
                     this_User.tweets.append(this_Tweet)
+                if len(mnts_lst) > 0:
+                    mentions = []
+                    for mnts in mnts_lst:
+                        mentioned = User()
+                        exists = this_User.doesexist(mnts._json['id'])
+                        if exists is None:
+                            mentioned = User(id=mnts._json['id'],
+                                             screen_name=mnts._json['screen_name'],
+                                             verified=mnts._json['verified'],
+                                             score=credscore,
+                                             location=mnts._json['location'],
+                                             seniority=mnts._json['created_at'])
+                        else:
+                            mentioned = exists
+                        mentions.append(mentioned)
+                    this_User.mentions.extend(mentions)
+                if user_exists is None:
+                    db.session.add(this_User)
+                else:
                     db.session.merge(this_User)
-                if len(this_mentions) > 0:
-                    db.session.bulk_save_objects(this_mentions)
                 db.session.commit()
             except exc.SQLAlchemyError as Err:
                 succeeded = False
