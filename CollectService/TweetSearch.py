@@ -1,5 +1,5 @@
 from tweepy import OAuthHandler, API, TweepError
-from Application import Tweet
+from . import Tweet
 from Application import _Config
 from datetime import date, timedelta
 from time import sleep
@@ -49,6 +49,7 @@ def updatequerysettings():
 def tweet_search(api, searchQuery):
     tweetCount = 0
     tweets = []
+    stype = 'popular'
     global maxId, sinceId
     print("Downloading max {0} tweets, starting from {1}".format(
         maxTweets, maxId))
@@ -58,36 +59,36 @@ def tweet_search(api, searchQuery):
                 if not sinceId:
                     new_tweets = api.search(
                         q=searchQuery, count=tweetsPerQry, lang='en',
+                        type=stype,
                         tweet_mode='extended', until=day_before)
                 else:
                     new_tweets = api.search(q=searchQuery, count=tweetsPerQry,
                                             tweet_mode='extended', lang='en',
-                                            since_id=sinceId, until=day_before)
+                                            until=day_before, type=stype)
             else:
                 if (not sinceId):
                     new_tweets = api.search(q=searchQuery, count=tweetsPerQry,
                                             tweet_mode='extended', lang='en',
                                             max_id=str(maxId - 1),
-                                            until=day_before)
+                                            until=day_before, type=stype)
                 else:
                     new_tweets = api.search(q=searchQuery, count=tweetsPerQry,
                                             tweet_mode='extended', lang='en',
                                             max_id=str(maxId - 1),
-                                            until=day_before)
+                                            until=day_before, type=stype)
             if not new_tweets:
                 print("No more tweets found")
                 break
             for tweet in new_tweets:
-                t = Tweet.Tweet(tweet)
+                t = Tweet.Tweet(tweet, 'SearchAPI')
                 tweets.append(t.__dict__)
             tweetCount += len(new_tweets)
             maxId = new_tweets[-1].id
-            sinceId = new_tweets[0].id
         except TweepError as e:
             # Just exit if any error
             print("some error : " + str(e))
             break
-        sleep(5)
+        sleep(1)
     print("Downloaded {0} tweets.".format(tweetCount))
     return tweets
 
@@ -103,6 +104,6 @@ def SearchTweets():
         tweets = tweet_search(api, squery)
         Alltweets.append(tweets)
         updatekeywords(k)
-        sleep(10)
+        sleep(5)
     updatequerysettings()
     return Alltweets

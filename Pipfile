@@ -53,6 +53,7 @@ python-crontab = "*"
 utils = "*"
 celery = {extras = ["redis"],version = "*"}
 dictor = "*"
+pandas = "*"
 
 [requires]
 python_version = "3.7"

@@ -1,11 +1,10 @@
 from flask_script import Manager
 from flask_migrate import Migrate, MigrateCommand
-from Application import _Config, models
+from Application import _Config
 from Application.models import db
+from Application import Mouthful
 
-from Application import create_app
-# TODO test manager
-app = create_app()
+app = Mouthful
 app.config.from_object(_Config.dbconf)
 db.init_app(app)
 migrate = Migrate(app, db)
