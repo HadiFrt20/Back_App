@@ -1,4 +1,5 @@
 from . import Tweet, TweetSearch
+import hashlib
 
 
 def Format(nested_list):
@@ -23,6 +24,12 @@ def UsrfromId(lst):
     return new_lst
     # TODO get text sentiment and send subjectivity and polairty to models
     # TODO set keywords and send
+
+
+def genUniqueId(string):
+    id = int(hashlib.md5(string.encode('utf-8')).hexdigest(), 16)
+    trunc_id = int(str(id)[:15])
+    return trunc_id
 
 
 # Formula for CalcScore
