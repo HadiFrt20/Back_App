@@ -1,28 +1,41 @@
 """This script defines the models and tables needed to store tweets"""
-from flask_sqlalchemy import SQLAlchemy
-from CollectService import helpers
-from Application import db, Mouthful
+from Application import db
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.associationproxy import association_proxy
 import datetime
 from sqlalchemy import DateTime, exc, orm
 
 Base = declarative_base()
-# db = SQLAlchemy()
 
 
-def find_or_create(foundtags):
+def find_or_create_hashtag(foundtags):
     for foundtag in foundtags:
         try:
             hashtag = foundtag.doesexist(foundtag.id)
             if hashtag is None:
-                print("Writing new hashtag record")
+                # print("Writing new hashtag record")
                 hashtag = Hashtag(id=foundtag.id, tag=foundtag.tag)
             else:
-                print("Appended old record")
+                pass
+                # print("Appended old record")
         except exc.SQLAlchemyError as err:
             print(err)
     return Tweet_Hashtag(hashtag)
+
+
+def find_or_create_keyword(matchedkeywords):
+    for key in matchedkeywords:
+        try:
+            keyword = key.doesexist(key.id)
+            if keyword is None:
+                # print("Writing new keyword record")
+                keyword = Keyword(id=key.id, keyword=key.keyword)
+            else:
+                pass
+                # print("Appended old keyword record")
+        except exc.SQLAlchemyError as err:
+            print(err)
+    return Tweet_Keyword(keyword)
 
 
 class Tweet_Hashtag(db.Model):
@@ -39,6 +52,22 @@ class Tweet_Hashtag(db.Model):
             self.tweet = proxied
         elif type(proxied) is Hashtag:
             self.hashtag = proxied
+
+
+class Tweet_Keyword(db.Model):
+    __tablename__ = 'tweet_keyword'
+    tweet_fk = db.Column('tweet_id', db.BigInteger,
+                         db.ForeignKey('tweets.id'), primary_key=True)
+    hashtag_fk = db.Column('keyword_id', db.BigInteger,
+                           db.ForeignKey('keywords.id'), primary_key=True)
+    keyword = db.relationship("Keyword", back_populates="tweets")
+    tweet = db.relationship("Tweet", backref="t_k")
+
+    def __init__(self, proxied=None):
+        if type(proxied) is Tweet:
+            self.tweet = proxied
+        elif type(proxied) is Keyword:
+            self.keyword = proxied
 
 
 mention = db.Table('mention',
@@ -84,10 +113,12 @@ class Tweet(db.Model):
     created_at = db.Column(DateTime, default=datetime.datetime.utcnow)
     retweets = db.Column(db.Integer)
     favorites = db.Column(db.Integer)
-    keyword = db.Column(db.Text)
     polarity = db.Column(db.Float)
     subjectivity = db.Column(db.Float)
-    hashtags = association_proxy("t_h", "hashtag", creator=find_or_create)
+    hashtags = association_proxy("t_h", "hashtag",
+                                 creator=find_or_create_hashtag)
+    keywords = association_proxy("t_k", "keyword",
+                                 creator=find_or_create_keyword)
     user_fk = db.Column(db.BigInteger, db.ForeignKey('users.id'))
 
     @classmethod
@@ -104,7 +135,6 @@ class Hashtag(db.Model):
     id = db.Column(db.BigInteger, primary_key=True)
     tag = db.Column(db.VARCHAR(280), nullable=False)
     tweets = db.relationship("Tweet_Hashtag", back_populates="hashtag")
-    # TODO fix hashtags duplicates
     @classmethod
     def doesexist(cls, id):
         tag = None
@@ -123,89 +153,24 @@ class Hashtag(db.Model):
         return tag
 
 
-def InsertMultipleEntries(tweets):
-    succeeded = []
-    AllEntries = helpers.Format(tweets)
-    for entry in AllEntries:
-        status = InsertdbEntry(entry)
-        succeeded.append(status)
-    return succeeded
+class Keyword(db.Model):
+    __tablename__ = 'keywords'
+    id = db.Column(db.BigInteger, primary_key=True)
+    keyword = db.Column(db.VARCHAR(280), nullable=False)
+    tweets = db.relationship("Tweet_Keyword", back_populates="keyword")
+    @classmethod
+    def doesexist(cls, id):
+        key = None
+        exists = False
+        try:
+            exists = db.session.query(Keyword).\
+                filter(Keyword.id == id).one() is not None
+        except orm.exc.MultipleResultsFound:
+            exists = True
+        except orm.exc.NoResultFound:
+            exists = False
 
-
-def InsertdbEntry(tweet):
-    succeeded = True
-    credscore = helpers.calcScore(tweet)
-    this_Tweet = Tweet(id=tweet.tweet_id, text=tweet.text,
-                       language=tweet.lang, longitude=tweet.lon,
-                       latitude=tweet.lat, created_at=tweet.date,
-                       retweets=tweet.retweets, favorites=tweet.favs,
-                       keyword="test", polarity=1.22, subjectivity=0.33)
-    this_User = User(id=tweet.user_id, screen_name=tweet.user,
-                     verified=tweet.verified, score=credscore,
-                     location=tweet.user_location, seniority=tweet.seniority)
-    with Mouthful.app_context():
-        tweet_exists = this_Tweet.doesexist(tweet.tweet_id)
-        if not tweet_exists:
-            with db.session.no_autoflush:
-                tweets_hashtags = []
-                # associations = []
-                if len(list(tweet.hashtags)) > 0:
-                    for t in list(tweet.hashtags):
-                        gen_id = helpers.genUniqueId(t['text'])
-                        tag = Hashtag(id=gen_id, tag=t['text'])
-                        # exists = tag.doesexist(gen_id)
-                        # if exists is None:
-                        #     new_tag = Hashtag(id=gen_id, tag=t['text'])
-                        #     # asso = Tweet_Hashtag()
-                        #     # asso.hashtag = new_tag
-                        tweets_hashtags.append(tag)
-                        # else:
-                        #     old_tag = exists
-                        #     asso = Tweet_Hashtag(this_Tweet, old_tag)
-                        #     associations.append(asso)
-                mnts_lst = list(tweet.mentions)
-                try:
-                    # if len(this_hashtags) > 0:
-                    #     for newtag in this_hashtags:
-                    #         db.session.merge(newtag)
-                    #         db.session.flush()
-                    if(len(tweets_hashtags) > 0):
-                        this_Tweet.hashtags.append(tweets_hashtags)
-
-                    db.session.add(this_Tweet)
-                    user_exists = this_User.doesexist(tweet.user_id)
-                    if user_exists is None:
-                        this_User.tweets.append(this_Tweet)
-                    else:
-                        this_User = user_exists
-                        this_User.tweets.append(this_Tweet)
-                    if len(mnts_lst) > 0:
-                        mentions = []
-                        for mnts in mnts_lst:
-                            mentioned = User()
-                            if mnts is not None:
-                                exists = this_User.doesexist(mnts._json['id'])
-                                if exists is None:
-                                    mentioned = User(id=mnts._json['id'],
-                                                     screen_name=mnts._json['screen_name'],
-                                                     verified=mnts._json['verified'],
-                                                     score=credscore,
-                                                     location=mnts._json['location'],
-                                                     seniority=mnts._json['created_at'])
-                                else:
-                                    mentioned = exists
-                                mentions.append(mentioned)
-                            this_User.mentions.extend(mentions)
-                    if user_exists is None:
-                        db.session.add(this_User)
-                    else:
-                        db.session.merge(this_User)
-                except exc.SQLAlchemyError as Err:
-                    succeeded = False
-                    print(Err)
-            try:
-                db.session.commit()
-                db.session.close()
-            except exc.SQLAlchemyError as Err:
-                print(Err)
-    return succeeded
+        if exists:
+            key = db.session.query(Keyword).\
+                filter(Keyword.id == id).first()
+        return key

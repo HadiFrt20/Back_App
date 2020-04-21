@@ -1,5 +1,7 @@
-from . import Tweet, TweetSearch
+from . import Tweet, TweetSearch, textprocessing
+from datetime import datetime
 import hashlib
+from math import log
 
 
 def Format(nested_list):
@@ -7,8 +9,12 @@ def Format(nested_list):
     for Itr in nested_list:
         for tweetdict in Itr:
             NewTweet = Tweet.Tweet(tweetdict, 'PostProcessing')
-            new_mentions = UsrfromId(NewTweet.mentions)
-            NewTweet.mentions = new_mentions
+            NewTweet.mentions = UsrfromId(NewTweet.mentions)
+            NewTweet.keywords = textprocessing.MatchKeywords(NewTweet.text)
+            NewTweet.polarity = textprocessing.GetSentiment(NewTweet.text)[0]
+            NewTweet.subjectivity = textprocessing.\
+                GetSentiment(NewTweet.text)[1]
+            NewTweet.CredScore = calcScore(NewTweet)
             New_Tweets.append(NewTweet)
     return New_Tweets
 
@@ -22,8 +28,6 @@ def UsrfromId(lst):
             else:
                 new_lst.append(TweetSearch.GetUserfromId(mentioned_user['id']))
     return new_lst
-    # TODO get text sentiment and send subjectivity and polairty to models
-    # TODO set keywords and send
 
 
 def genUniqueId(string):
@@ -34,5 +38,25 @@ def genUniqueId(string):
 
 # Formula for CalcScore
 def calcScore(TweetObject):
-    # tweet.favs, statuscnt, followers, friends, inlists, seniority
-    return 0
+    activity = 0
+    rejectnulldate = "0000-00-00 00:00:00"
+    creation_date_string = TweetObject.seniority
+    if creation_date_string != rejectnulldate:
+        creation_date = datetime.strptime(creation_date_string,
+                                          '%Y-%m-%d %H:%M:%S')
+        seniority = (datetime.now() - creation_date).days
+        activity = log(int(TweetObject.statuscnt)/(seniority))
+
+    friends = int(TweetObject.friends)
+    followers = int(TweetObject.followers)
+    lists = int(TweetObject.inlists)
+    if friends > 0 and followers > 0:
+        reach = log(followers/friends)
+    else:
+        reach = -4
+    if followers > 0:
+        influence = lists + log(followers)
+    else:
+        influence = lists - 4
+    score = 0.3 * activity + 0.3 * reach + 0.4 * influence
+    return score

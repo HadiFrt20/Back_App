@@ -54,6 +54,7 @@ utils = "*"
 celery = {extras = ["redis"],version = "*"}
 dictor = "*"
 pandas = "*"
+textblob = "*"
 
 [requires]
 python_version = "3.7"

@@ -125,12 +125,16 @@ class Tweet:
                 self.tweet_id = status["tweet_id"]
                 self.country = status["country"]
                 self.user = status["user"]
+                self.CredScore = 0
                 self.user_id = status["user_id"]
                 self.user_location = status["user_location"]
                 self.verified = bool(status["verified"])
                 self.lon = status["lon"]
                 self.lat = status["lat"]
                 self.text = str(status["text"])
+                self.keywords = []
+                self.polarity = 0
+                self.subjectivity = 0
                 self.mentions = status["mentions"]
                 self.hashtags = status["hashtags"]
                 self.date = status["date"]

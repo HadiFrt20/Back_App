@@ -8,8 +8,8 @@ import json
 
 day_before = date.today() - timedelta(days=1)
 keywords = {}
-maxTweets = 100
-tweetsPerQry = 10
+maxTweets = 300
+tweetsPerQry = 30
 sinceId = None
 maxId = -1
 Alltweets = []
@@ -104,7 +104,7 @@ def TweepyAuth():
 def SearchTweets():
     global Alltweets
     api = TweepyAuth()
-    for i in range(2):
+    for i in range(4):
         squery, k = ConfigQuery(i)
         print("Nb {0} Generated query is {1}".format(i, squery))
         tweets = tweet_search(api, squery)

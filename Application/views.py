@@ -1,4 +1,4 @@
-from flask import Blueprint, url_for, request
+from flask import Blueprint, url_for, request, current_app
 from jinja2 import Environment, FileSystemLoader
 from CollectService import tasks
 
@@ -15,6 +15,6 @@ def newproject():
     if request.method == 'GET':
         return home_temp.render(css_home=css_home)
     if request.form['start'] == '>>':
-        print('here')
+        print(current_app._get_current_object())
         tasks.gettweets()
         return home_temp.render(css_home=css_home)
