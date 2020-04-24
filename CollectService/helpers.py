@@ -54,9 +54,9 @@ def calcScore(TweetObject):
         reach = log(followers/friends)
     else:
         reach = -4
-    if followers > 0:
-        influence = lists + log(followers)
+    if followers > 0 and lists > 0:
+        influence = log(lists) + log(followers)
     else:
-        influence = lists - 4
+        influence = - 4
     score = 0.3 * activity + 0.3 * reach + 0.4 * influence
     return score

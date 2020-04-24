@@ -55,6 +55,7 @@ celery = {extras = ["redis"],version = "*"}
 dictor = "*"
 pandas = "*"
 textblob = "*"
+pyjwt = "*"
 
 [requires]
 python_version = "3.7"

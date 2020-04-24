@@ -5,9 +5,9 @@ from Application.models import db
 from Application import Mouthful
 
 app = Mouthful
-app.config.from_object(_Config.dbconf)
+app.config.from_object(_Config.DEV)
 db.init_app(app)
-migrate = Migrate(app, db)
+migrate = Migrate(app, db, compare_type=True)
 manager = Manager(app)
 
 manager.add_command('db', MigrateCommand)

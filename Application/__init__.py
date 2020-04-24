@@ -15,3 +15,5 @@ with Mouthful.app_context():
     Mouthful.celery = celery
     from .views import App
     Mouthful.register_blueprint(App)
+    from API.views import Api
+    Mouthful.register_blueprint(Api)

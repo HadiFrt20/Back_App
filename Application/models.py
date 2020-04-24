@@ -58,7 +58,7 @@ class Tweet_Keyword(db.Model):
     __tablename__ = 'tweet_keyword'
     tweet_fk = db.Column('tweet_id', db.BigInteger,
                          db.ForeignKey('tweets.id'), primary_key=True)
-    hashtag_fk = db.Column('keyword_id', db.BigInteger,
+    keyword_fk = db.Column('keyword_id', db.BigInteger,
                            db.ForeignKey('keywords.id'), primary_key=True)
     keyword = db.relationship("Keyword", back_populates="tweets")
     tweet = db.relationship("Tweet", backref="t_k")
@@ -151,6 +151,47 @@ class Hashtag(db.Model):
             tag = db.session.query(Hashtag).\
                 filter(Hashtag.id == id).first()
         return tag
+
+
+class AccessToken(db.Model):
+    __tablename__ = 'accesstokens'
+    id = db.Column(db.BigInteger, primary_key=True)
+    token = db.Column(db.String(50), unique=True)
+    credit = db.Column(db.Integer)
+    testers = db.relationship("Tester", backref='accesstokens', lazy='dynamic')
+    @classmethod
+    def doesexist(cls, txt):
+        token = None
+        exists = False
+        try:
+            exists = db.session.query(AccessToken).\
+                filter(AccessToken.token == txt).one() is not None
+        except orm.exc.MultipleResultsFound:
+            exists = True
+        except orm.exc.NoResultFound:
+            exists = False
+
+        if exists:
+            token = db.session.query(AccessToken).\
+                filter(AccessToken.token == txt).first()
+        return token
+
+
+class Tester(db.Model):
+    __tablename__ = 'testers'
+    id = db.Column(db.BigInteger, primary_key=True)
+    public_id = db.Column(db.String(36), unique=True)
+    email = db.Column(db.VARCHAR(320))
+    password = db.Column(db.String(80))
+    token_fk = db.Column(db.BigInteger, db.ForeignKey('accesstokens.id'))
+    @classmethod
+    def doesexist(cls, email):
+        exists = False
+        old_tester = db.session.query(Tester).\
+            filter(Tester.email == email).scalar()
+        if old_tester is not None:
+            exists = True
+        return exists, old_tester
 
 
 class Keyword(db.Model):

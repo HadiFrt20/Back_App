@@ -1,0 +1,160 @@
+from Application import Mouthful
+from sqlalchemy.sql import func
+from flask import jsonify
+from Application.models import db, User, Tweet, Hashtag, Keyword
+from Application.models import Tweet_Hashtag, Tweet_Keyword, AccessToken
+from Application.models import Tester
+
+app = Mouthful
+
+
+def getusers():
+    users = db.session.query(User.id, User.location, User.score,
+                             User.screen_name, User.verified,
+                             func.count(Tweet.id).label('tweets')).\
+        join(Tweet, User.id == Tweet.user_fk).\
+        group_by(User.id).all()
+    db.session.close()
+    db.session.remove()
+    allusers = {}
+    idx = 0
+    for user in users:
+        a_user = {}
+        a_user['id'] = user.id
+        a_user['location'] = user.location
+        a_user['screen_name'] = user.screen_name
+        a_user['verified'] = user.verified
+        a_user['score'] = user.score
+        a_user['tweets_count'] = user.tweets
+        allusers[idx] = a_user
+        idx = idx + 1
+    return jsonify(allusers)
+
+
+def gettweetsbyhashtag():
+    hashtags_tweets = db.session.query(Hashtag,
+                                       func.avg(Tweet.polarity).label(
+                                           'polarity'),
+                                       func.avg(Tweet.subjectivity).label(
+                                           'subjectivity'),
+                                       func.count(Tweet.id).label('tweets'))\
+        .join(Tweet_Hashtag, Hashtag.id == Tweet_Hashtag.hashtag_fk)\
+        .join(Tweet, Tweet.id == Tweet_Hashtag.tweet_fk)\
+        .group_by(Hashtag.id).all()
+    all_hk = {}
+    idx = 0
+    for hk in hashtags_tweets:
+        h_k = {}
+        h_k['tag'] = hk.Hashtag.tag
+        h_k['tweets_count'] = hk.tweets
+        h_k['avg_polarity'] = hk.polarity
+        h_k['avg_subjectivity'] = hk.subjectivity
+        all_hk[idx] = h_k
+        idx = idx + 1
+    return jsonify(all_hk)
+
+
+def gethashtagkeys():
+    hashtags_keys = db.session.query(Hashtag, Keyword)\
+                              .join(Tweet_Hashtag, Hashtag.id
+                                    == Tweet_Hashtag.hashtag_fk)\
+                              .join(Tweet, Tweet.id
+                                    == Tweet_Hashtag.tweet_fk)\
+                              .join(Tweet_Keyword, Tweet_Keyword.tweet_fk
+                                    == Tweet.id)\
+                              .join(Keyword, Keyword.id
+                                    == Tweet_Keyword.keyword_fk)\
+                              .all()
+    all_hk = {}
+    idx = 0
+    for hk in hashtags_keys:
+        h_k = {}
+        h_k['tag'] = hk.Hashtag.tag
+        h_k['keyword'] = hk.Keyword.keyword
+        all_hk[idx] = h_k
+        idx = idx + 1
+    return jsonify(all_hk)
+
+
+def gettweetsbykeyword():
+    keywords_tweets = db.session.query(Keyword,
+                                       func.avg(Tweet.polarity).label(
+                                           'polarity'),
+                                       func.avg(Tweet.subjectivity).label(
+                                           'subjectivity'),
+                                       func.count(Tweet.id).label('tweets'))\
+        .join(Tweet_Keyword, Keyword.id == Tweet_Keyword.keyword_fk)\
+        .join(Tweet, Tweet.id == Tweet_Keyword.tweet_fk)\
+        .group_by(Keyword.id).all()
+    all_kt = {}
+    idx = 0
+    for kt in keywords_tweets:
+        k_t = {}
+        k_t['keyword'] = kt.Keyword.keyword
+        k_t['tweets_count'] = kt.tweets
+        k_t['avg_polarity'] = kt.polarity
+        k_t['avg_subjectivity'] = kt.subjectivity
+        all_kt[idx] = k_t
+        idx = idx + 1
+    return jsonify(all_kt)
+
+
+def getsentimentbyday():
+    tweets = db.session.query(func.date_format(Tweet.created_at, '%y-%m-%d')
+                              .label('date'),
+                              func.avg(Tweet.polarity).label('polarity'),
+                              func.avg(Tweet.subjectivity)
+                              .label('subjectivity'))\
+        .group_by(func.date_format(Tweet.created_at, '%y-%m-%d'))\
+        .all()
+    all_tw = {}
+    idx = 0
+    for t in tweets:
+        tw = {}
+        tw['date'] = t.date
+        tw['avg_polarity'] = t.polarity
+        tw['avg_subjectivity'] = t.subjectivity
+        all_tw[idx] = t
+        idx = idx + 1
+    return jsonify(all_tw)
+
+
+def createtester(pid, email, hashed_pass, accesstoken):
+    status = '{"status" : "Access Token doesn\'t exists"}'
+    new_tester = Tester(public_id=pid, email=email, password=hashed_pass)
+    token = AccessToken.doesexist(accesstoken)
+    if token is None:
+        status = '{"status" : "Access Token doesn\'t exists"}'
+    else:
+        if token.credit <= 0:
+            status = '{"status" : "Access Token expired"}'
+        else:
+            token.credit = token.credit - 1
+            tester_exists = Tester.doesexist(email)[0]
+            if tester_exists is False:
+                with app.app_context():
+                    with db.session.no_autoflush:
+                        token.testers.append(new_tester)
+                        db.session.commit()
+                        db.session.close()
+                        db.session.remove()
+                        status = '{"status" : "User successfully created"}'
+            else:
+                status = '{"status" : "User already exists"}'
+    return jsonify(status)
+
+
+def getatester(auth_email):
+    exists, tester = Tester.doesexist(auth_email)
+    db.session.close()
+    db.session.remove()
+    if exists:
+        return exists, tester
+    else:
+        return exists, None
+
+
+def getatesterbyid(pid):
+    current_tester = db.session.query(Tester).filter(
+        Tester.public_id == pid).first()
+    return current_tester
