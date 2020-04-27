@@ -79,20 +79,25 @@ def AllUsers(current_tester):
 
 
 @Api.route('/gethashtagkeys', methods=['GET'])
-def HashtagKeys():
+@require_token
+def HashtagKeys(current_tester):
     return gethashtagkeys()
 
 
 @Api.route('/gethashtagsinfo', methods=['GET'])
-def HashtagsInfo():
+@require_token
+def HashtagsInfo(current_tester):
     return gettweetsbyhashtag()
 
 
 @Api.route('/getkeywordsinfo', methods=['GET'])
-def KeywordssInfo():
+@require_token
+def KeywordssInfo(current_tester):
     return gettweetsbykeyword()
 
 
 @Api.route('/getsentimentbydate', methods=['GET'])
-def SentimentEvolution():
+@require_token
+def SentimentEvolution(current_tester):
+    print(current_tester)
     return getsentimentbyday()

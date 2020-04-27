@@ -4,11 +4,19 @@
   <link rel="stylesheet" href="{{css_home}}">
 </head>
 <body>
-<div class="homebod">
-  <form method="post">
-    <input class="ptitle" type="text" name="projecttitle"/> <input name="start" class =".go_btn" type="submit" value=">>"/>
-    <h1>Twitter API test with Celery</h1>
-  </form>
+<div class="wrapper fadeInDown">
+  <div id="formContent"></div>
+    <form method="POST">
+      <p class="underlineHover" style="text-align:center"><strong>Tweets Collection Service</strong><br>
+      <input name="logout" class="fadeIn second" type="submit"  value="Log Out"/>
+      <input name="start" class ="fadeIn first" type="submit" value="Start"/>
+    </form>
+    <div id="formFooter">
+      {% if user %}
+      <p class="underlineHover"><strong>Logged in as :</strong> {{user}}
+      {% endif %}
+    </div>
+    </div>
 </div>
 </body>
 </html>
