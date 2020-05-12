@@ -7,7 +7,7 @@ from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
 from .queries import getusers, gethashtagkeys, gettweetsbyhashtag,\
     gettweetsbykeyword, getsentimentbyday, createtester, getatester,\
-    getatesterbyid
+    getatesterbyid, getsentimentbycatbyday
 
 
 Api = Blueprint('api', __name__, url_prefix="/api")
@@ -52,6 +52,7 @@ def tester_login():
     resp = make_response("Could not verify", 401, {
         "WWW-Authenticate": "Basic realm='Login required!'"})
     if not auth or not auth.username or not auth.password:
+        print("not getting anything",auth.username, auth.password)
         return resp
     else:
         exists, tester = getatester(auth.username)
@@ -66,7 +67,7 @@ def tester_login():
             auth_msg = {"public_id": tester.public_id,
                         "exp": expiration_date}
             auth_token = jwt.encode(auth_msg, secret)
-            token = {"Auth Token": auth_token.decode('utf-8')}
+            token = {"Auth_Token": auth_token.decode('utf-8')}
             return jsonify(token)
     return resp
 
@@ -101,3 +102,10 @@ def KeywordssInfo(current_tester):
 def SentimentEvolution(current_tester):
     print(current_tester)
     return getsentimentbyday()
+
+
+@Api.route('/getsentimentbycatbydate', methods=['GET'])
+@require_token
+def SentimentByCat(current_tester):
+    print(current_tester)
+    return getsentimentbycatbyday()

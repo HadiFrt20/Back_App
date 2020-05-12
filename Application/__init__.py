@@ -1,6 +1,7 @@
 from flask import Flask
 from flask_migrate import Migrate
 from flask_session import Session
+from flask_cors import CORS
 from . import _Config
 import sys, os
 sys.path.append(os.path.abspath(os.path.join('..', 'extensions')))
@@ -13,6 +14,7 @@ with Mouthful.app_context():
     db.init_app(Mouthful)
     Mouthful.celery = celery
     sess = Session(Mouthful)
+    CORS(Mouthful)
     from .views import App
     Mouthful.register_blueprint(App)
     from API.views import Api

@@ -77,15 +77,18 @@ def gethashtagkeys():
 
 
 def gettweetsbykeyword():
-    keywords_tweets = db.session.query(Keyword,
-                                       func.avg(Tweet.polarity).label(
-                                           'polarity'),
-                                       func.avg(Tweet.subjectivity).label(
-                                           'subjectivity'),
-                                       func.count(Tweet.id).label('tweets'))\
-        .join(Tweet_Keyword, Keyword.id == Tweet_Keyword.keyword_fk)\
-        .join(Tweet, Tweet.id == Tweet_Keyword.tweet_fk)\
-        .group_by(Keyword.id).all()
+    try:
+        keywords_tweets = db.session.query(Keyword,
+                                        func.avg(Tweet.polarity).label(
+                                            'polarity'),
+                                        func.avg(Tweet.subjectivity).label(
+                                            'subjectivity'),
+                                        func.count(Tweet.id).label('tweets'))\
+            .join(Tweet_Keyword, Keyword.id == Tweet_Keyword.keyword_fk)\
+            .join(Tweet, Tweet.id == Tweet_Keyword.tweet_fk)\
+            .group_by(Keyword.id).all()
+    except:
+        pass
     all_kt = {}
     idx = 0
     for kt in keywords_tweets:
@@ -99,14 +102,47 @@ def gettweetsbykeyword():
     return jsonify(all_kt)
 
 
+def getsentimentbycatbyday():
+    try:
+        keywords_tweets = db.session.query(Keyword,
+                                        func.date_format(Tweet.created_at, '%y-%m-%d')
+                                        .label('date'),
+                                        func.avg(Tweet.polarity).label(
+                                            'polarity'),
+                                        func.avg(Tweet.subjectivity).label(
+                                            'subjectivity'),
+                                        func.count(Tweet.id).label('tweets'))\
+            .join(Tweet_Keyword, Keyword.id == Tweet_Keyword.keyword_fk)\
+            .join(Tweet, Tweet.id == Tweet_Keyword.tweet_fk)\
+            .group_by(Keyword.id, func.date_format(Tweet.created_at, '%y-%m-%d')
+                                        .label('date')).all()
+    except:
+        pass
+    all_kt = {}
+    idx = 0
+    for kt in keywords_tweets:
+        k_t = {}
+        k_t['date'] = kt.date
+        k_t['keyword'] = kt.Keyword.keyword
+        k_t['tweets_count'] = kt.tweets
+        k_t['avg_polarity'] = kt.polarity
+        k_t['avg_subjectivity'] = kt.subjectivity
+        all_kt[idx] = k_t
+        idx = idx + 1
+    return jsonify(all_kt)
+
+
 def getsentimentbyday():
-    tweets = db.session.query(func.date_format(Tweet.created_at, '%y-%m-%d')
-                              .label('date'),
-                              func.avg(Tweet.polarity).label('polarity'),
-                              func.avg(Tweet.subjectivity)
-                              .label('subjectivity'))\
-        .group_by(func.date_format(Tweet.created_at, '%y-%m-%d'))\
-        .all()
+    try:
+        tweets = db.session.query(func.date_format(Tweet.created_at, '%y-%m-%d')
+                                .label('date'),
+                                func.avg(Tweet.polarity).label('polarity'),
+                                func.avg(Tweet.subjectivity)
+                                .label('subjectivity'))\
+            .group_by(func.date_format(Tweet.created_at, '%y-%m-%d'), )\
+            .all()
+    except:
+        pass
     all_tw = {}
     idx = 0
     for t in tweets:
@@ -118,36 +154,37 @@ def getsentimentbyday():
         idx = idx + 1
     return jsonify(all_tw)
 
-
 def createtester(pid, email, hashed_pass, accesstoken):
-    status = '{"status" : "Access Token doesn\'t exists"}'
+    status = {"status" : "Access Token is not valid"}
     new_tester = Tester(public_id=pid, email=email, password=hashed_pass)
     token = AccessToken.doesexist(accesstoken)
     if token is None:
-        status = '{"status" : "Access Token doesn\'t exists"}'
+        status = {"status" : "Access Token is not valid", "code" : 205}
     else:
         if token.credit <= 0:
-            status = '{"status" : "Access Token expired"}'
+            status = {"status" : "Access Token expired", "code" : 205}
         else:
             token.credit = token.credit - 1
             tester_exists = Tester.doesexist(email)[0]
             if tester_exists is False:
                 with app.app_context():
                     with db.session.no_autoflush:
-                        token.testers.append(new_tester)
-                        db.session.commit()
-                        db.session.close()
-                        db.session.remove()
-                        status = '{"status" : "User successfully created"}'
+                        try:
+                            token.testers.append(new_tester)
+                            db.session.commit()
+                            status = status = {"status" : "User successfully created", "code" : 201}
+                        except:
+                            pass
             else:
-                status = '{"status" : "User already exists"}'
+                status = status = {"status" : "User already exists", "code" : 204}
     return jsonify(status)
 
 
 def getatester(auth_email):
-    exists, tester = Tester.doesexist(auth_email)
-    db.session.close()
-    db.session.remove()
+    try:
+        exists, tester = Tester.doesexist(auth_email)
+    except:
+        pass
     if exists:
         return exists, tester
     else:
@@ -155,6 +192,9 @@ def getatester(auth_email):
 
 
 def getatesterbyid(pid):
-    current_tester = db.session.query(Tester).filter(
-        Tester.public_id == pid).first()
+    try:
+        current_tester = db.session.query(Tester).filter(
+            Tester.public_id == pid).first()
+    except:
+        pass
     return current_tester

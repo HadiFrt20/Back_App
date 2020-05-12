@@ -57,6 +57,8 @@ pandas = "*"
 textblob = "*"
 pyjwt = "*"
 flask-session = "*"
+python-dotenv = "*"
+flask-cors = "*"
 
 [requires]
 python_version = "3.7"
