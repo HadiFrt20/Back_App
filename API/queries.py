@@ -1,15 +1,28 @@
 from Application import Mouthful
 from sqlalchemy.sql import func
 from flask import jsonify
-from Application.models import db, User, Tweet, Hashtag, Keyword
+from Application.models import db, User, Tweet, Hashtag, Keyword, mention
 from Application.models import Tweet_Hashtag, Tweet_Keyword, AccessToken
 from Application.models import Tester
 
+
 app = Mouthful
 
+#Helpers
+def replaceusermentions(allusers):
+    idscreenname = {}
+    for user in allusers:
+        idscreenname[allusers[user]['id']] = allusers[user]['screen_name']
+    for alt_user in allusers:
+        if allusers[alt_user]['mentioned'] != 0 and allusers[alt_user]['mentioned'] is not None:
+            mentioned_id = allusers[alt_user]['mentioned']
+            allusers[alt_user]['mentioned'] = idscreenname[mentioned_id]
+    return allusers
 
+
+#Queries
 def getusers():
-    users = db.session.query(User.id, User.location, User.score,
+    users = db.session.query(User.id, User.longitude, User.latitude,
                              User.screen_name, User.verified,
                              func.count(Tweet.id).label('tweets')).\
         join(Tweet, User.id == Tweet.user_fk).\
@@ -21,15 +34,36 @@ def getusers():
     for user in users:
         a_user = {}
         a_user['id'] = user.id
-        a_user['location'] = user.location
+        a_user['longitude'] = user.longitude
+        a_user['latitude'] = user.latitude
         a_user['screen_name'] = user.screen_name
         a_user['verified'] = user.verified
-        a_user['score'] = user.score
         a_user['tweets_count'] = user.tweets
         allusers[idx] = a_user
         idx = idx + 1
     return jsonify(allusers)
 
+def getAllUsers():
+    users = db.session.execute('SELECT *, ifnull(mention.mentioned_fk, 0) as ment, COUNT(mention.user_fk) as weight\
+                                FROM users LEFT OUTER JOIN mention \
+                                on users.id = mention.user_fk GROUP BY ifnull(mentioned_fk, 0), \
+                                users.id ORDER BY score DESC')
+    db.session.close()
+    db.session.remove()
+    allusers = {}
+    idx = 0
+    for user in users:
+        a_user = {}
+        a_user['id'] = user.id
+        a_user['location'] = user.location
+        a_user['screen_name'] = user.screen_name
+        a_user['verified'] = user.verified
+        a_user['score'] = user.score
+        a_user['mentioned'] = user.ment
+        a_user['weight'] = user.weight
+        allusers[idx] = a_user
+        idx = idx + 1
+    return jsonify(replaceusermentions(allusers))
 
 def gettweetsbyhashtag():
     hashtags_tweets = db.session.query(Hashtag,
@@ -172,6 +206,8 @@ def createtester(pid, email, hashed_pass, accesstoken):
                         try:
                             token.testers.append(new_tester)
                             db.session.commit()
+                            db.session.close()
+                            db.session.remove()
                             status = status = {"status" : "User successfully created", "code" : 201}
                         except:
                             pass
@@ -183,6 +219,8 @@ def createtester(pid, email, hashed_pass, accesstoken):
 def getatester(auth_email):
     try:
         exists, tester = Tester.doesexist(auth_email)
+        db.session.close()
+        db.session.remove()
     except:
         pass
     if exists:

@@ -2,6 +2,8 @@ from . import Tweet, TweetSearch, textprocessing
 from datetime import datetime
 import hashlib
 from math import log
+from geopy.geocoders import Nominatim
+from geopy.exc import GeocoderTimedOut
 
 
 def Format(nested_list):
@@ -60,3 +62,18 @@ def calcScore(TweetObject):
         influence = - 4
     score = 0.3 * activity + 0.3 * reach + 0.4 * influence
     return score
+
+
+#Replace location with lon, lat
+def validcountry(TwitteLocation):
+    geolocator = Nominatim(user_agent="InsightApp")
+    location = None
+    try:
+        location = geolocator.geocode(TwitteLocation)
+    except GeocoderTimedOut as e:
+        print("Error: geocode failed on input %s with message %s"%(TwitteLocation, e))
+    
+    if location is not None:
+        return location.longitude, location.latitude
+    else:
+        return None, None

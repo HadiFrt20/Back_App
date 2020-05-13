@@ -7,7 +7,7 @@ from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
 from .queries import getusers, gethashtagkeys, gettweetsbyhashtag,\
     gettweetsbykeyword, getsentimentbyday, createtester, getatester,\
-    getatesterbyid, getsentimentbycatbyday
+    getatesterbyid, getsentimentbycatbyday, getAllUsers
 
 
 Api = Blueprint('api', __name__, url_prefix="/api")
@@ -75,7 +75,12 @@ def tester_login():
 @Api.route('/getallusers', methods=['GET'])
 @require_token
 def AllUsers(current_tester):
-    print(current_tester.public_id)
+    return getAllUsers()
+
+
+@Api.route('/getgeousers', methods=['GET'])
+@require_token
+def GeoUsers(current_tester):
     return getusers()
 
 

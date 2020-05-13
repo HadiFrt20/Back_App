@@ -81,7 +81,8 @@ class User(db.Model):
     __tablename__ = 'users'
     id = db.Column(db.BigInteger, primary_key=True)
     screen_name = db.Column(db.String(50))
-    location = db.Column(db.String(150))
+    longitude = db.Column(db.Float)
+    latitude = db.Column(db.Float)
     verified = db.Column(db.Boolean)
     score = db.Column(db.Float)
     seniority = db.Column(DateTime, default=datetime.datetime.utcnow)

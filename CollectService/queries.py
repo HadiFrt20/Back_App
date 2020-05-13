@@ -26,9 +26,11 @@ def InsertdbEntry(tweet):
                        retweets=tweet.retweets, favorites=tweet.favs,
                        polarity=tweet.polarity,
                        subjectivity=tweet.subjectivity)
+    user_lon, user_lat = helpers.validcountry(tweet.user_location)
     this_User = User(id=tweet.user_id, screen_name=tweet.user,
                      verified=tweet.verified, score=credscore,
-                     location=tweet.user_location, seniority=tweet.seniority)
+                     longitude=user_lon, latitude=user_lat,
+                     seniority=tweet.seniority)
     with app.app_context():
         tweet_exists = this_Tweet.doesexist(tweet.tweet_id)
         if not tweet_exists:
