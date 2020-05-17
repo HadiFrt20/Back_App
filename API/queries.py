@@ -4,6 +4,7 @@ from flask import jsonify
 from Application.models import db, User, Tweet, Hashtag, Keyword, mention
 from Application.models import Tweet_Hashtag, Tweet_Keyword, AccessToken
 from Application.models import Tester
+from .kmeans import clusterusersbyscore
 
 
 app = Mouthful
@@ -26,7 +27,8 @@ def getusers():
                              User.screen_name, User.verified,
                              func.count(Tweet.id).label('tweets')).\
         join(Tweet, User.id == Tweet.user_fk).\
-        group_by(User.id).all()
+        group_by(User.id).\
+        having((User.longitude != None) & (User.latitude != None)).all()
     db.session.close()
     db.session.remove()
     allusers = {}
@@ -37,7 +39,6 @@ def getusers():
         a_user['longitude'] = user.longitude
         a_user['latitude'] = user.latitude
         a_user['screen_name'] = user.screen_name
-        a_user['verified'] = user.verified
         a_user['tweets_count'] = user.tweets
         allusers[idx] = a_user
         idx = idx + 1
@@ -55,7 +56,6 @@ def getAllUsers():
     for user in users:
         a_user = {}
         a_user['id'] = user.id
-        a_user['location'] = user.location
         a_user['screen_name'] = user.screen_name
         a_user['verified'] = user.verified
         a_user['score'] = user.score
@@ -63,7 +63,8 @@ def getAllUsers():
         a_user['weight'] = user.weight
         allusers[idx] = a_user
         idx = idx + 1
-    return jsonify(replaceusermentions(allusers))
+    newdata = clusterusersbyscore(replaceusermentions(allusers))
+    return jsonify(newdata)
 
 def gettweetsbyhashtag():
     hashtags_tweets = db.session.query(Hashtag,

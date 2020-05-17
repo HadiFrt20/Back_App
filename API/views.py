@@ -79,8 +79,8 @@ def AllUsers(current_tester):
 
 
 @Api.route('/getgeousers', methods=['GET'])
-@require_token
-def GeoUsers(current_tester):
+#@require_token
+def GeoUsers():
     return getusers()
 
 

@@ -67,11 +67,13 @@ def InsertdbEntry(tweet):
                             if mnts is not None:
                                 exists = this_User.doesexist(mnts._json['id'])
                                 if exists is None:
+                                    user_lon, user_lat = helpers.validcountry(mnts._json['location'])
                                     mentioned = User(id=mnts._json['id'],
                                                         screen_name=mnts._json['screen_name'],
                                                         verified=mnts._json['verified'],
                                                         score=credscore,
-                                                        location=mnts._json['location'],
+                                                        longitude= user_lon,
+                                                        latitude= user_lat,
                                                         seniority=mnts._json['created_at'])
                                 else:
                                     mentioned = exists

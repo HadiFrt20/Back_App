@@ -60,6 +60,7 @@ flask-session = "*"
 python-dotenv = "*"
 flask-cors = "*"
 geopy = "*"
+sklearn = "*"
 
 [requires]
 python_version = "3.7"
